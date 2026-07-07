@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ko">
+ <head><script>window["__codeletBootstrap__"]=JSON.parse('{"A":"A","B":"20260706-01-aaa7700"}');</script><script src="/_sdk/f432b76fb310b513.telemetry_sdk.js" integrity="sha512-9FJQ55EKmmqhyyik8BhrMVfm0+iYYfb8uOlRsjtkxJMEI97qOVEI4PnHohDjQAtvAep0IOEpdQ64eki0sz62ug=="></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>곰돌이 간식 받기 게임</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { width: 100%; margin: 0; }
+    /* Fallback background/color so the page looks right even when opened as a plain .html file
+       without the Canva editing SDK. Inside Canva the SDK overrides these from config.json. */
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(to bottom, #1b1740, #3b2f6e 60%, #5a4a9e);
+      color: #dcd6f5;
+    }
+    canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .pixel-border {
+      border: 4px solid #1b1740;
+      box-shadow: 0 0 0 4px #4a3f8a, 8px 8px 0 0 rgba(0,0,0,0.4);
+    }
+    .heart-slot { transition: transform 0.15s ease; }
+    .heart-lost { opacity: 0.25; transform: scale(0.8); }
+    .badge-pop { animation: pop 0.4s ease; }
+    @keyframes pop { 0%{transform:scale(0.3);} 60%{transform:scale(1.15);} 100%{transform:scale(1);} }
+    .overlay { backdrop-filter: blur(2px); }
+    @keyframes twinkle { 0%,100%{opacity:0.3;} 50%{opacity:1;} }
+    .star-dot { animation: twinkle 2s infinite; }
+    .guide-row { display: flex; align-items: center; gap: 10px; }
+    .guide-canvas { image-rendering: pixelated; width: 34px; height: 34px; flex-shrink: 0; }
+  </style>
+  <script src="/_sdk/0179d719c431a79e.data_sdk.js" type="text/javascript" integrity="sha512-OsRvJkI5GkC3MJQcgotQYotpzrMSX415GiKKgvYdxQEEkzD/fdchShO2FMSy0PJr/tiINMXOk5Vl2zAgg6bUiA=="></script>
+  <script src="/_sdk/0b3af1c300e720aa.resizing_sdk.js" type="text/javascript" integrity="sha512-nX1P6oXZmEY5wCI2lUVg3BwKu1cr0yi+ZpXgZ0Yn90vkSwvpmyzBMvOyD6VLJUtBwFI2dSrw1b6OvORxSggw3w=="></script>
+ </head>
+ <body data-template-id="__page-root" class="min-h-screen w-full flex flex-col items-center justify-start py-4 px-2"><!-- decorative pixel stars -->
+  <div aria-hidden="true" class="fixed inset-0 pointer-events-none overflow-hidden">
+   <div class="star-dot absolute top-[10%] left-[15%] w-1.5 h-1.5 bg-white" style="animation-delay:0s"></div>
+   <div class="star-dot absolute top-[20%] left-[70%] w-1.5 h-1.5 bg-white" style="animation-delay:0.6s"></div>
+   <div class="star-dot absolute top-[40%] left-[40%] w-1 h-1 bg-white" style="animation-delay:1.2s"></div>
+   <div class="star-dot absolute top-[65%] left-[85%] w-1.5 h-1.5 bg-white" style="animation-delay:0.3s"></div>
+   <div class="star-dot absolute top-[80%] left-[25%] w-1 h-1 bg-white" style="animation-delay:0.9s"></div>
+  </div>
+  <header class="w-full max-w-[520px] flex flex-col items-center gap-2 z-10">
+   <h1 data-template-id="game-title" class="canva-text text-center" style="color:#ffe14d;font-size:32px;font-weight:700;">🐻 곰돌이 간식 받기</h1>
+  </header>
+  <main class="w-full max-w-[520px] flex flex-col items-center gap-3 z-10 mt-2"><!-- HUD -->
+   <div class="w-full flex items-center justify-between px-1">
+    <div class="flex items-baseline gap-2"><span data-template-id="score-label" class="canva-text" style="color:#c7bff0;">SCORE</span> <span id="score-value" class="text-yellow-300 text-2xl font-bold" aria-live="polite">0</span>
+    </div>
+    <div id="hearts-container" data-template-id="hearts-container" class="canva-list flex items-center gap-1" aria-label="남은 목숨" style="background:transparent;"><span class="heart-slot" data-heart="1"><i data-lucide="heart" style="width:26px;height:26px;color:#ff4d6d;fill:#ff4d6d;"></i></span> <span class="heart-slot" data-heart="2"><i data-lucide="heart" style="width:26px;height:26px;color:#ff4d6d;fill:#ff4d6d;"></i></span> <span class="heart-slot" data-heart="3"><i data-lucide="heart" style="width:26px;height:26px;color:#ff4d6d;fill:#ff4d6d;"></i></span>
+    </div>
+   </div><!-- Game area -->
+   <div class="relative w-full">
+    <canvas id="game" width="360" height="480" class="w-full h-auto pixel-border rounded-sm block bg-transparent"></canvas><!-- x2 badge -->
+    <div id="double-badge" data-template-id="double-badge" class="canva-tag hidden absolute top-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded" style="background:#ffe14d;color:#1b1740;font-size:15px;">
+     ★ x2 SCORE!
+    </div><!-- Start overlay with rules guide -->
+    <div id="start-overlay" data-template-id="start-overlay" class="canva-panel overlay absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-sm text-center px-5 py-4 overflow-y-auto" style="background:rgba(27, 23, 64, 0.92);">
+     <h2 data-template-id="start-title" class="canva-text" style="color:#ffe14d;font-size:24px;font-weight:700;">🐻 게임 방법</h2>
+     <p data-template-id="start-howto-label" class="canva-text" style="color:#dcd6f5;font-size:15px;">곰돌이를 움직여 아이템을 받으세요!</p>
+     <div class="w-full max-w-[280px] flex flex-col gap-2.5 text-left">
+      <div class="guide-row">
+       <canvas class="guide-canvas" data-guide="snack" width="24" height="24"></canvas><span data-template-id="guide-snack-label" class="canva-text leading-snug" style="color:#f3c14b;font-size:13px;">쫀득 간식 — 받아먹으면 +10점</span>
+      </div>
+      <div class="guide-row">
+       <canvas class="guide-canvas" data-guide="star" width="24" height="24"></canvas><span data-template-id="guide-star-label" class="canva-text leading-snug" style="color:#ffe14d;font-size:13px;">반짝 별 — 6초간 점수 2배!</span>
+      </div>
+      <div class="guide-row">
+       <canvas class="guide-canvas" data-guide="bug" width="24" height="24"></canvas><span data-template-id="guide-bug-label" class="canva-text leading-snug" style="color:#8fd66f;font-size:13px;">벌레 — 닿으면 목숨 -1, 꼭 피하세요!</span>
+      </div>
+     </div>
+     <p data-template-id="start-desc" class="canva-text leading-relaxed" style="color:#dcd6f5;font-size:14px;font-weight:400;">← → 화살표 키 또는 아래 버튼으로 이동. 목숨 하트 3개를 모두 잃으면 게임 오버!</p><button id="start-button" data-template-id="start-button" type="button" class="canva-button pixel-border px-6 py-3 rounded-sm active:translate-x-1 active:translate-y-1 transition-transform" style="background:#ff6b9d;color:#ffffff;font-size:18px;">게임 시작</button>
+    </div><!-- Game over overlay -->
+    <div id="gameover-overlay" data-template-id="gameover-overlay" class="canva-panel overlay hidden absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-sm text-center px-6" style="background:rgba(27, 23, 64, 0.92);">
+     <h2 data-template-id="gameover-title" class="canva-text" style="color:#ff4d6d;font-size:24px;font-weight:700;">게임 오버 💀</h2>
+     <div class="flex items-baseline gap-2"><span data-template-id="gameover-score-label" class="canva-text" style="color:#dcd6f5;">최종 점수</span> <span id="final-score" class="text-yellow-300 text-3xl font-bold">0</span>
+     </div><button id="restart-button" data-template-id="restart-button" type="button" class="canva-button pixel-border px-6 py-3 rounded-sm active:translate-x-1 active:translate-y-1 transition-transform" style="background:#ff6b9d;color:#ffffff;font-size:18px;">다시 하기</button>
+    </div>
+   </div><!-- Mobile controls -->
+   <div class="w-full flex items-center justify-between gap-4 mt-1"><button id="move-left-button" data-template-id="move-left-button" type="button" class="canva-button pixel-border flex-1 py-4 rounded-sm flex items-center justify-center active:translate-y-1 transition-transform" style="background:#4a3f8a;color:#ffffff;" aria-label="왼쪽 이동"><i data-lucide="arrow-left" style="width:28px;height:28px;"></i></button> <button id="move-right-button" data-template-id="move-right-button" type="button" class="canva-button pixel-border flex-1 py-4 rounded-sm flex items-center justify-center active:translate-y-1 transition-transform" style="background:#4a3f8a;color:#ffffff;" aria-label="오른쪽 이동"><i data-lucide="arrow-right" style="width:28px;height:28px;"></i></button>
+   </div>
+   <p data-template-id="footer-hint" class="canva-text text-center mt-1" style="color:#a99fd6;font-weight:400;font-size:13px;">← → 화살표 키 또는 화면 버튼으로 이동</p>
+  </main>
+  <script src="/_sdk/e063511df281944a.editing_sdk.js" integrity="sha512-Xa8p4aPfoMxVnzxQE2WAG0FfoaPLxdjOJMfUZGm1yZosJTYmnNDvgLkJ2EoN0i3zxjeQVAzUMSXNvTKQVqbXyQ=="></script>
+  <script>
+    // Guard: lucide may be blocked in some sandboxes — never crash the game.
+    try { if (window.lucide) lucide.createIcons(); } catch (e) {}
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    // ---- Pixel palette ----
+    const C = {
+      bearBody: '#a9744f', bearDark: '#7a4f30', bearFace: '#e8c9a0',
+      snack: '#f3c14b', snackDark: '#c9962b',
+      bugBody: '#6ab04c', bugDark: '#3d7027', bugLeg: '#1f3a15',
+      star: '#ffe14d', starDark: '#d4a71f',
+      white: '#ffffff', black: '#1b1740'
+    };
+
+    function pxc(context, x, y, w, h, color) {
+      context.fillStyle = color;
+      context.fillRect(Math.round(x), Math.round(y), w, h);
+    }
+    function px(x, y, w, h, color) { pxc(ctx, x, y, w, h, color); }
+
+    // ---- Drawing routines (pixel art) ----
+    function drawBearOn(g, x, y) {
+      pxc(g, x+6, y+2, 12, 12, C.bearBody);
+      pxc(g, x+38, y+2, 12, 12, C.bearBody);
+      pxc(g, x+9, y+5, 6, 6, C.bearDark);
+      pxc(g, x+41, y+5, 6, 6, C.bearDark);
+      pxc(g, x+4, y+10, 48, 30, C.bearBody);
+      pxc(g, x+16, y+22, 24, 14, C.bearFace);
+      pxc(g, x+16, y+16, 6, 6, C.black);
+      pxc(g, x+34, y+16, 6, 6, C.black);
+      pxc(g, x+25, y+26, 6, 5, C.bearDark);
+      pxc(g, x+22, y+32, 12, 3, C.bearDark);
+    }
+    function drawSnackOn(g, x, y) {
+      pxc(g, x+4, y, 16, 4, C.snack);
+      pxc(g, x, y+4, 24, 12, C.snack);
+      pxc(g, x+4, y+16, 16, 4, C.snack);
+      pxc(g, x+6, y+5, 5, 5, C.white);
+      pxc(g, x+13, y+11, 6, 3, C.snackDark);
+    }
+    function drawBugOn(g, x, y) {
+      pxc(g, x+4, y+4, 16, 14, C.bugBody);
+      pxc(g, x+7, y+7, 10, 8, C.bugDark);
+      pxc(g, x, y+6, 4, 3, C.bugLeg);
+      pxc(g, x+20, y+6, 4, 3, C.bugLeg);
+      pxc(g, x, y+12, 4, 3, C.bugLeg);
+      pxc(g, x+20, y+12, 4, 3, C.bugLeg);
+      pxc(g, x+7, y, 3, 4, C.black);
+      pxc(g, x+14, y, 3, 4, C.black);
+    }
+    function drawStarOn(g, x, y) {
+      pxc(g, x+9, y, 4, 4, C.star);
+      pxc(g, x+5, y+4, 12, 4, C.star);
+      pxc(g, x, y+8, 22, 5, C.star);
+      pxc(g, x+4, y+13, 6, 5, C.star);
+      pxc(g, x+12, y+13, 6, 5, C.star);
+      pxc(g, x+8, y+6, 4, 4, C.white);
+      pxc(g, x+2, y+9, 3, 3, C.starDark);
+      pxc(g, x+17, y+9, 3, 3, C.starDark);
+    }
+
+    function drawBear(x, y) { drawBearOn(ctx, x, y); }
+    function drawSnack(x, y) { drawSnackOn(ctx, x, y); }
+    function drawBug(x, y) { drawBugOn(ctx, x, y); }
+    function drawStar(x, y) { drawStarOn(ctx, x, y); }
+
+    // ---- Render mini guide previews on the start overlay ----
+    function renderGuidePreviews() {
+      document.querySelectorAll('.guide-canvas').forEach(cv => {
+        const g = cv.getContext('2d');
+        g.clearRect(0, 0, cv.width, cv.height);
+        const kind = cv.dataset.guide;
+        if (kind === 'snack') drawSnackOn(g, 0, 2);
+        else if (kind === 'star') drawStarOn(g, 1, 3);
+        else if (kind === 'bug') drawBugOn(g, 1, 3);
+      });
+    }
+    renderGuidePreviews();
+
+    // ---- Game state ----
+    let state = 'idle'; // idle | playing | over
+    const bear = { w: 56, h: 44, x: W/2 - 28, y: H - 56, speed: 5 };
+    let items = [];
+    let score = 0;
+    let lives = 3;
+    let doubleUntil = 0;
+    let spawnTimer = 0;
+    let rafId = null;
+    let lastTime = 0;
+
+    const keys = { left: false, right: false };
+
+    function spawnItem() {
+      const r = Math.random();
+      let type;
+      if (r < 0.16) type = 'star';
+      else if (r < 0.5) type = 'bug';
+      else type = 'snack';
+      const size = 24;
+      items.push({
+        type,
+        x: Math.floor(Math.random() * (W - size)),
+        y: -size,
+        w: size, h: size,
+        speed: 1.4 + Math.random() * 1.6 + score * 0.004
+      });
+    }
+
+    function updateScore() {
+      document.getElementById('score-value').textContent = score;
+    }
+    function updateHearts() {
+      document.querySelectorAll('#hearts-container .heart-slot').forEach(slot => {
+        const n = parseInt(slot.dataset.heart, 10);
+        if (n <= lives) slot.classList.remove('heart-lost');
+        else slot.classList.add('heart-lost');
+      });
+    }
+    const doubleBadge = document.getElementById('double-badge');
+    function showDoubleBadge(on) {
+      if (on) {
+        doubleBadge.classList.remove('hidden');
+        doubleBadge.classList.remove('badge-pop');
+        void doubleBadge.offsetWidth;
+        doubleBadge.classList.add('badge-pop');
+      } else {
+        doubleBadge.classList.add('hidden');
+      }
+    }
+
+    function hits(it) {
+      return it.x < bear.x + bear.w &&
+             it.x + it.w > bear.x &&
+             it.y < bear.y + bear.h &&
+             it.y + it.h > bear.y;
+    }
+
+    function loop(t) {
+      if (state !== 'playing') return;
+      const dt = Math.min((t - lastTime) / 16.67, 3);
+      lastTime = t;
+
+      ctx.clearRect(0, 0, W, H);
+
+      if (keys.left) bear.x -= bear.speed * dt;
+      if (keys.right) bear.x += bear.speed * dt;
+      bear.x = Math.max(0, Math.min(W - bear.w, bear.x));
+
+      spawnTimer += dt;
+      const spawnEvery = Math.max(28, 55 - score * 0.15);
+      if (spawnTimer >= spawnEvery) { spawnTimer = 0; spawnItem(); }
+
+      const dbl = t < doubleUntil;
+
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.y += it.speed * dt;
+
+        if (hits(it)) {
+          if (it.type === 'snack') { score += dbl ? 20 : 10; updateScore(); }
+          else if (it.type === 'star') { doubleUntil = t + 6000; showDoubleBadge(true); }
+          else if (it.type === 'bug') {
+            lives -= 1; updateHearts();
+            if (lives <= 0) { endGame(); return; }
+          }
+          items.splice(i, 1);
+          continue;
+        }
+        if (it.y > H) { items.splice(i, 1); continue; }
+
+        if (it.type === 'snack') drawSnack(it.x, it.y);
+        else if (it.type === 'bug') drawBug(it.x, it.y);
+        else drawStar(it.x, it.y);
+      }
+
+      if (!dbl && !doubleBadge.classList.contains('hidden')) showDoubleBadge(false);
+
+      drawBear(bear.x, bear.y);
+
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function resetState() {
+      items = []; score = 0; lives = 3; doubleUntil = 0; spawnTimer = 0;
+      bear.x = W/2 - bear.w/2;
+      updateScore(); updateHearts(); showDoubleBadge(false);
+    }
+
+    function startGame() {
+      resetState();
+      document.getElementById('start-overlay').classList.add('hidden');
+      document.getElementById('gameover-overlay').classList.add('hidden');
+      state = 'playing';
+      lastTime = performance.now();
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function endGame() {
+      state = 'over';
+      if (rafId) cancelAnimationFrame(rafId);
+      document.getElementById('final-score').textContent = score;
+      document.getElementById('gameover-overlay').classList.remove('hidden');
+    }
+
+    document.getElementById('start-button').addEventListener('click', startGame);
+    document.getElementById('restart-button').addEventListener('click', startGame);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') { keys.left = true; e.preventDefault(); }
+      if (e.key === 'ArrowRight') { keys.right = true; e.preventDefault(); }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft') keys.left = false;
+      if (e.key === 'ArrowRight') keys.right = false;
+    });
+
+    function bindHold(id, dir) {
+      const el = document.getElementById(id);
+      const on = (e) => { e.preventDefault(); keys[dir] = true; };
+      const off = () => { keys[dir] = false; };
+      el.addEventListener('mousedown', on);
+      el.addEventListener('touchstart', on, { passive: false });
+      ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev => el.addEventListener(ev, off));
+    }
+    bindHold('move-left-button', 'left');
+    bindHold('move-right-button', 'right');
+
+    // initial idle draw
+    ctx.clearRect(0, 0, W, H);
+    drawBear(bear.x, bear.y);
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a16b3783650a834c',t:'MTc4MzMwNTMzNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
